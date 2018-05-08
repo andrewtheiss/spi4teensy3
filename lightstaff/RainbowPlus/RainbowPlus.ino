@@ -51,8 +51,10 @@
             VDD   - Power supply voltage
             GND   - 
 */
-
 #include <OctoWS2811.h>
+#include "imu_sensor_01.h"
+
+bool RUN_ONCE = false;
 
 const int ledsPerStrip = 60;
 
@@ -67,6 +69,7 @@ int rainbowColors[180];
 
 
 void setup() {
+
   pinMode(1, OUTPUT);
   digitalWrite(1, HIGH);
   for (int i=0; i<180; i++) {
@@ -78,10 +81,20 @@ void setup() {
   }
   digitalWrite(1, LOW);
   leds.begin();
+
+  
+    // Start serial from tutorial    
+    Serial.begin(38400);
 }
 
 
 void loop() {
+
+  while (!RUN_ONCE) {
+    RUN_ONCE = true;
+    // Start the first sensor 
+    startSensor();
+  }
   rainbow(10, 2500);
 }
 
