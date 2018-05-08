@@ -39,6 +39,17 @@
 
             About to include SPI from LSM9DS0
             https://learn.adafruit.com/adafruit-lsm9ds0-accelerometer-gyro-magnetometer-9-dof-breakouts/arduino-code
+
+
+            More on LSM9DS0 pins.. https://learn.sparkfun.com/tutorials/lsm9ds0-hookup-guide
+            CSG - - Chip Gyro Select (LOW - SPI Enabled, I2C disabled)
+            CSXM  - Chip Select Accel/Mag (LOW - SPI Enabled, I2C disabled)
+            SDOG  - [In SPI Mode] - Gyroscope MISO (gyro data output)
+            SDOXM - [In SPI Mode] - XM Data Output (SDO_XM)
+            SCL   - I2C and SPI serial clock
+            SDA   - [In SPI Mode] Device data in MOSI
+            VDD   - Power supply voltage
+            GND   - 
 */
 
 #include <OctoWS2811.h>
