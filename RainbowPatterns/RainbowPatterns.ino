@@ -37,28 +37,37 @@
     pin 1 - Output indicating CPU usage, monitor with an oscilloscope,
             logic analyzer or even an LED (brighter = CPU busier)
 */
-
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 // Brightness settings
 int numberBrightnessLevels = 5; //set this to number of bightness levels
 float brightnessLevels[] = {1.0f, 0.5f, 0.25f, 0.04f, 0.01f}; //Set to maximum brightness
-int brightnessNumber = 1;
+volatile int brightnessNumber = 1;
+
+// Pattern Details
+int patternSolidColors[] = {0, 60, 120, 180, 240, 300};
+volatile int patternSolidColor = 0;
+int patternSolidColorCount = 6;
 
 // Button Ports
 int buttonBrightness = 3; //button #1 for brightness
 int buttonPattern = 4; //button #1 for pattern cycling
-int buttonBank = 5; //button #3 for changing pattern bank
+int buttonInterAnimationId = 5; //button #3 for changing pattern bank
 
 
+//Animation 
+volatile int pattern = 0;
+int maxPatterns = 2;
+
+// InterAnimationId
+volatile int interAnimationSelection = 0;
+int interAnimationIdSizePerPattern[] = {2, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN MAXPATTERNS
 
 //variables to keep track of the timing of recent interrupts
-unsigned long button_time_pattern = 0;  
-unsigned long last_button_time_pattern = 0; 
-bool buttonBrightnessIsPressed = false;
-unsigned long button_time_brightness = 0;  
-unsigned long last_button_time_brightness = 0; 
-unsigned long button_time_bank = 0;  
-unsigned long last_button_time_bank = 0; 
+volatile bool buttonBrightnessIsPressed = false;
+volatile bool buttonPatternIsPressed = false;
+volatile bool buttonInterAnimationIsPressed = false;
 
 #include <OctoWS2811.h>
 
@@ -81,8 +90,8 @@ void setup() {
 
   //pin setups
   pinMode(buttonBrightness, INPUT_PULLUP);     //define pin 3 as input
-  pinMode(4, INPUT_PULLUP);     //define pin 8 as input
-  pinMode(5, INPUT_PULLUP);     //define pin 9 as input
+  pinMode(buttonPattern, INPUT_PULLUP);     //define pin 8 as input
+  pinMode(buttonInterAnimationId, INPUT_PULLUP);     //define pin 9 as input
   
   
   pinMode(1, OUTPUT);
@@ -104,23 +113,69 @@ void setup() {
   }
   digitalWrite(1, LOW);
   leds.begin();
+
+  attachInterrupt(buttonPattern,  cyclePattern, FALLING);
+  attachInterrupt(buttonBrightness, brightnessButtonPressed, FALLING);
+  //attachInterrupt(buttonInterAnimationId, cycleSubPattern, FALLING);
 }
 
-
-void checkButtonBrightness() {
-
+// Update Brightness
+void brightnessButtonPressed() {
   // If the button is pressed, toggle button on state and run button pressed code
-  if (digitalRead(buttonBrightness)== LOW && !buttonBrightnessIsPressed) {
+  if ((digitalRead(buttonBrightness)== LOW) && !buttonBrightnessIsPressed) { 
     brightnessControl();
-  } else if (buttonBrightnessIsPressed) {
+    delay(300);
+  } else {
     buttonBrightnessIsPressed = false;
   }
 }
 
-void loop() {
-  rainbow(10, 2500);
+// Switch between patterns
+void cyclePattern() {
+  // If the button is pressed, toggle button on state and run button pressed code
+  if ((digitalRead(buttonPattern)== LOW) && !buttonPatternIsPressed) {
+    brightnessControl();
+    /*   if ((pattern + 1) >= maxPatterns) {
+      pattern = 0;
+    } else {
+      pattern++;
+    }
+    interAnimationSelection = 0;
+    */
+    buttonPatternIsPressed = true;
+    delay(300);
+  } else {
+    buttonPatternIsPressed = false;
+  }
+}
 
-  checkButtonBrightness();
+void cycleSubPattern() {
+  if ((digitalRead(buttonInterAnimationId) == LOW) && !buttonInterAnimationIsPressed) {
+    if ((interAnimationSelection + 1) >= interAnimationIdSizePerPattern[0]) {
+      interAnimationSelection = 0;
+    } else {
+      interAnimationSelection++;
+    }
+     buttonInterAnimationIsPressed = true;
+     delay(300);
+  } else {
+    buttonInterAnimationIsPressed = false;
+  }
+}
+
+void loop() {
+  switch(pattern) {
+    case 0:
+      rainbow(10, 2500);
+      break;
+    case 1:
+      solid();
+      break;
+    default:
+      rainbow(10, 2500);
+      break;
+  }
+
 }
 
 
@@ -140,6 +195,47 @@ int adjustForBrightness(int input) {
   float adjustedBright = float(input) * brightnessLevels[brightnessNumber];
   return round(adjustedBright);
 }
+
+// Cycle Solid Color
+void solid()
+{
+  int color, x, y, wait;
+
+  int index = 0; //patternSolidColors[patternSolidColor];
+  wait = 100;
+  for (color=0; color < 180; color++) {
+    digitalWrite(1, HIGH);
+    for (x=0; x < ledsPerStrip; x++) {
+      for (y=0; y < 8; y++) {
+        switch( brightnessNumber) {
+          case 0:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]);
+            break;
+           case 1:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]);
+            break;
+          case 2:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[index]);
+           break;
+          case 3:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsLow[index]);
+            break;
+          case 4:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsVeryLow[index]);
+            break;
+            case 5:
+        leds.setPixel(x + y*ledsPerStrip, 0);
+        break;
+        }
+      }
+    }
+    leds.show();
+    digitalWrite(1, LOW);
+    delayMicroseconds(wait);
+  }
+}
+
+
 
 // phaseShift is the shift between each row.  phaseShift=0
 // causes all rows to show the same colors moving together.
