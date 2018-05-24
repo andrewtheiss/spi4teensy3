@@ -36,27 +36,33 @@
     pin 3 - Do not use as PWM.  Normal use is ok.
     pin 1 - Output indicating CPU usage, monitor with an oscilloscope,
             logic analyzer or even an LED (brighter = CPU busier)
-
-            About to include SPI from LSM9DS0
-            https://learn.adafruit.com/adafruit-lsm9ds0-accelerometer-gyro-magnetometer-9-dof-breakouts/arduino-code
-
-
-            More on LSM9DS0 pins.. https://learn.sparkfun.com/tutorials/lsm9ds0-hookup-guide
-            CSG - - Chip Gyro Select (LOW - SPI Enabled, I2C disabled)
-            CSXM  - Chip Select Accel/Mag (LOW - SPI Enabled, I2C disabled)
-            SDOG  - [In SPI Mode] - Gyroscope MISO (gyro data output)
-            SDOXM - [In SPI Mode] - XM Data Output (SDO_XM)
-            SCL   - I2C and SPI serial clock
-            SDA   - [In SPI Mode] Device data in MOSI
-            VDD   - Power supply voltage
-            GND   - 
 */
+
+
+// Brightness settings
+int numberBrightnessLevels = 5; //set this to number of bightness levels
+float brightnessLevels[] = {1.0f, 0.5f, 0.25f, 0.04f, 0.01f}; //Set to maximum brightness
+int brightnessNumber = 1;
+
+// Button Ports
+int buttonBrightness = 3; //button #1 for brightness
+int buttonPattern = 4; //button #1 for pattern cycling
+int buttonBank = 5; //button #3 for changing pattern bank
+
+
+
+//variables to keep track of the timing of recent interrupts
+unsigned long button_time_pattern = 0;  
+unsigned long last_button_time_pattern = 0; 
+bool buttonBrightnessIsPressed = false;
+unsigned long button_time_brightness = 0;  
+unsigned long last_button_time_brightness = 0; 
+unsigned long button_time_bank = 0;  
+unsigned long last_button_time_bank = 0; 
+
 #include <OctoWS2811.h>
-#include "imu_sensor_01.h"
 
-bool RUN_ONCE = false;
-
-const int ledsPerStrip = 110;
+const int ledsPerStrip = 106 * 4;
 
 DMAMEM int displayMemory[ledsPerStrip*6];
 int drawingMemory[ledsPerStrip*6];
@@ -66,10 +72,19 @@ const int config = WS2811_GRB | WS2811_800kHz;
 OctoWS2811 leds(ledsPerStrip, displayMemory, drawingMemory, config);
 
 int rainbowColors[180];
-
+int rainbowColorsHalf[180];
+int rainbowColorsQuarter[180];
+int rainbowColorsLow[180];
+int rainbowColorsVeryLow[180];
 
 void setup() {
 
+  //pin setups
+  pinMode(buttonBrightness, INPUT_PULLUP);     //define pin 3 as input
+  pinMode(4, INPUT_PULLUP);     //define pin 8 as input
+  pinMode(5, INPUT_PULLUP);     //define pin 9 as input
+  
+  
   pinMode(1, OUTPUT);
   digitalWrite(1, HIGH);
   for (int i=0; i<180; i++) {
@@ -78,26 +93,53 @@ void setup() {
     int lightness = 50;
     // pre-compute the 180 rainbow colors
     rainbowColors[i] = makeColor(hue, saturation, lightness);
+    lightness = 25;
+    rainbowColorsHalf[i] = makeColor(hue, saturation, lightness);
+    lightness = 12;
+    rainbowColorsQuarter[i] = makeColor(hue, saturation, lightness);
+    lightness = 4;
+    rainbowColorsLow[i] = makeColor(hue, saturation, lightness);
+    lightness = 1;
+    rainbowColorsVeryLow[i] = makeColor(hue, saturation, lightness);
   }
   digitalWrite(1, LOW);
   leds.begin();
-
-  
-    // Start serial from tutorial    
-    Serial.begin(38400);
 }
 
+
+void checkButtonBrightness() {
+
+  // If the button is pressed, toggle button on state and run button pressed code
+  if (digitalRead(buttonBrightness)== LOW && !buttonBrightnessIsPressed) {
+    brightnessControl();
+  } else if (buttonBrightnessIsPressed) {
+    buttonBrightnessIsPressed = false;
+  }
+}
 
 void loop() {
-
-  while (!RUN_ONCE) {
-    RUN_ONCE = true;
-    // Start the first sensor 
-    startSensor();
-  }
   rainbow(10, 2500);
+
+  checkButtonBrightness();
 }
 
+
+//brightness button interrupt
+void brightnessControl() {
+  buttonBrightnessIsPressed = true;
+
+  if (brightnessNumber < numberBrightnessLevels) {
+    brightnessNumber++;
+  }
+  else {
+    brightnessNumber = 0;
+  }
+}
+
+int adjustForBrightness(int input) {
+  float adjustedBright = float(input) * brightnessLevels[brightnessNumber];
+  return round(adjustedBright);
+}
 
 // phaseShift is the shift between each row.  phaseShift=0
 // causes all rows to show the same colors moving together.
@@ -118,7 +160,27 @@ void rainbow(int phaseShift, int cycleTime)
     for (x=0; x < ledsPerStrip; x++) {
       for (y=0; y < 8; y++) {
         int index = (color + x + y*phaseShift/2) % 180;
+
+        switch( brightnessNumber) {
+          case 0:
         leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]);
+            break;
+           case 1:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]);
+            break;
+          case 2:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[index]);
+           break;
+          case 3:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsLow[index]);
+            break;
+          case 4:
+        leds.setPixel(x + y*ledsPerStrip, rainbowColorsVeryLow[index]);
+            break;
+            case 5:
+        leds.setPixel(x + y*ledsPerStrip, 0);
+        break;
+        }
       }
     }
     leds.show();
