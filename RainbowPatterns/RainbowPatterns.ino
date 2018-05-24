@@ -43,7 +43,7 @@
 // Brightness settings
 int numberBrightnessLevels = 5; //set this to number of bightness levels
 float brightnessLevels[] = {1.0f, 0.5f, 0.25f, 0.04f, 0.01f}; //Set to maximum brightness
-volatile int brightnessNumber = 1;
+volatile int brightnessNumber = 4;
 
 // Pattern Details
 int patternSolidColors[] = {0, 60, 120, 180, 240, 300};
