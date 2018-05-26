@@ -41,7 +41,7 @@
 #include <avr/interrupt.h>
 
 // Brightness settings
-int numberBrightnessLevels = 5; //set this to number of bightness levels
+int numberBrightnessLevels = 10; //set this to number of bightness levels
 float brightnessLevels[] = {1.0f, 0.5f, 0.25f, 0.04f, 0.01f}; //Set to maximum brightness
 volatile int brightnessNumber = 4;
 
@@ -195,36 +195,55 @@ int adjustForBrightness(int input) {
   float adjustedBright = float(input) * brightnessLevels[brightnessNumber];
   return round(adjustedBright);
 }
-
 // Cycle Solid Color
 void solid()
 {
   int color, x, y, wait;
-
   int index = 0; //patternSolidColors[patternSolidColor];
-  wait = 100;
+  
+  wait = 1;
   for (color=0; color < 180; color++) {
     digitalWrite(1, HIGH);
     for (x=0; x < ledsPerStrip; x++) {
       for (y=0; y < 8; y++) {
+  int indexRainbow = (color + x + y*50/2) % 180;
         switch( brightnessNumber) {
-          case 0:
-        leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]);
-            break;
-           case 1:
+            case 10:
+          index = 75;
         leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]);
-            break;
-          case 2:
-        leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[index]);
-           break;
-          case 3:
-        leds.setPixel(x + y*ledsPerStrip, rainbowColorsLow[index]);
-            break;
-          case 4:
-        leds.setPixel(x + y*ledsPerStrip, rainbowColorsVeryLow[index]);
-            break;
+        break;
+            case 9:
+          index = 90;
+          if (x%2 == 0) {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]); 
+          } else {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColors[indexRainbow]); 
+          }
+        break;
+            case 8:
+          index = 120;
+          if (x%2 == 0) {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[index]); 
+          } else {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[indexRainbow]); 
+          }
+        break;
+            case 6:
+          index = 150;
+          if (x%2 == 0) {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]); 
+          } else {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColors[indexRainbow]); 
+          }
+        break;
             case 5:
-        leds.setPixel(x + y*ledsPerStrip, 0);
+          index = 178;
+          if (x%2 == 0) {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]); 
+          } else {
+            leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[indexRainbow]); 
+          }
+        
         break;
         }
       }
@@ -234,6 +253,7 @@ void solid()
     delayMicroseconds(wait);
   }
 }
+
 
 
 
@@ -248,8 +268,8 @@ void solid()
 //
 void rainbow(int phaseShift, int cycleTime)
 {
+if (brightnessNumber < 5) {
   int color, x, y, wait;
-
   wait = cycleTime * 1000 / ledsPerStrip;
   for (color=0; color < 180; color++) {
     digitalWrite(1, HIGH);
@@ -283,5 +303,8 @@ void rainbow(int phaseShift, int cycleTime)
     digitalWrite(1, LOW);
     delayMicroseconds(wait);
   }
+} else {
+  solid();
+}
 }
 
