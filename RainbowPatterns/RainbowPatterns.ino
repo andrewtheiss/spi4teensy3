@@ -51,9 +51,10 @@ volatile int patternSolidColor = 0;
 int patternSolidColorCount = 6;
 
 // Button Ports
+// Note: These should not conflict with LED push items
 int buttonBrightness = 3; //button #1 for brightness
-int buttonPattern = 4; //button #1 for pattern cycling
-int buttonInterAnimationId = 5; //button #3 for changing pattern bank
+int buttonPattern = 9; //button #2 for pattern cycling
+int buttonInterAnimationId = 10; //button #3 for changing pattern bank
 
 
 //Animation 
