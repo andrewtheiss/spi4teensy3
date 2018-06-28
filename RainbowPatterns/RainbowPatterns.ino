@@ -59,16 +59,18 @@ int buttonInterAnimationId = 10; //button #3 for changing pattern bank
 
 //Animation 
 volatile int pattern = 0;
-int maxPatterns = 2;
+int maxPatterns = 3;
 
 // InterAnimationId
 volatile int interAnimationSelection = 0;
 int interAnimationIdSizePerPattern[] = {2, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN MAXPATTERNS
 
 //variables to keep track of the timing of recent interrupts
-volatile bool buttonBrightnessIsPressed = false;
 volatile bool buttonPatternIsPressed = false;
+volatile unsigned long buttonPatternPressedTime = 0;
+long buttonPatternPressedTimeDelay = 150;
 volatile bool buttonInterAnimationIsPressed = false;
+volatile bool buttonBrightnessIsPressed = false;
 
 #include <OctoWS2811.h>
 
@@ -116,40 +118,46 @@ void setup() {
   leds.begin();
 
   attachInterrupt(buttonPattern,  cyclePattern, FALLING);
-  attachInterrupt(buttonBrightness, brightnessButtonPressed, FALLING);
+  //attachInterrupt(buttonBrightness, brightnessButtonPressed, RISING);
   //attachInterrupt(buttonInterAnimationId, cycleSubPattern, FALLING);
 }
-
+/*
 // Update Brightness
 void brightnessButtonPressed() {
   // If the button is pressed, toggle button on state and run button pressed code
   if ((digitalRead(buttonBrightness)== LOW) && !buttonBrightnessIsPressed) { 
     brightnessControl();
-    delay(300);
   } else {
     buttonBrightnessIsPressed = false;
   }
 }
-
+*/
 // Switch between patterns
 void cyclePattern() {
   // If the button is pressed, toggle button on state and run button pressed code
-  if ((digitalRead(buttonPattern)== LOW) && !buttonPatternIsPressed) {
-    brightnessControl();
-    /*   if ((pattern + 1) >= maxPatterns) {
+
+  // Check for time delay between button presses
+  unsigned long latestTime = millis();
+  bool latestTimeWithinDelay = false;
+  if ((latestTime - buttonPatternPressedTimeDelay) > buttonPatternPressedTime) {
+    latestTimeWithinDelay = true;
+  }
+  
+  if ((digitalRead(buttonPattern)== LOW) && !buttonPatternIsPressed && latestTimeWithinDelay) {
+
+    buttonPatternPressedTime = latestTime;
+    if ((pattern + 1) >= maxPatterns) {
       pattern = 0;
     } else {
       pattern++;
     }
-    interAnimationSelection = 0;
-    */
+    
     buttonPatternIsPressed = true;
-    delay(300);
   } else {
     buttonPatternIsPressed = false;
   }
 }
-
+/*
 void cycleSubPattern() {
   if ((digitalRead(buttonInterAnimationId) == LOW) && !buttonInterAnimationIsPressed) {
     if ((interAnimationSelection + 1) >= interAnimationIdSizePerPattern[0]) {
@@ -163,17 +171,23 @@ void cycleSubPattern() {
     buttonInterAnimationIsPressed = false;
   }
 }
-
+*/
 void loop() {
   switch(pattern) {
     case 0:
-      rainbow(10, 2500);
+      solid(30);
       break;
     case 1:
-      solid();
+      solid(70);
+      break;
+    case 2:
+      solid(150);
       break;
     default:
+      solid(140);
+      /*
       rainbow(10, 2500);
+      */
       break;
   }
 
@@ -182,7 +196,7 @@ void loop() {
 
 //brightness button interrupt
 void brightnessControl() {
-  buttonBrightnessIsPressed = true;
+  //buttonBrightnessIsPressed = true;
 
   if (brightnessNumber < numberBrightnessLevels) {
     brightnessNumber++;
@@ -196,63 +210,21 @@ int adjustForBrightness(int input) {
   float adjustedBright = float(input) * brightnessLevels[brightnessNumber];
   return round(adjustedBright);
 }
+
 // Cycle Solid Color
-void solid()
+void solid(int colorToSet)
 {
-  int color, x, y, wait;
-  int index = 0; //patternSolidColors[patternSolidColor];
-  
+  int x, y, wait;
   wait = 1;
-  for (color=0; color < 180; color++) {
-    digitalWrite(1, HIGH);
-    for (x=0; x < ledsPerStrip; x++) {
-      for (y=0; y < 8; y++) {
-  int indexRainbow = (color + x + y*50/2) % 180;
-        switch( brightnessNumber) {
-            case 10:
-          index = 75;
-        leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]);
-        break;
-            case 9:
-          index = 90;
-          if (x%2 == 0) {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]); 
-          } else {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColors[indexRainbow]); 
-          }
-        break;
-            case 8:
-          index = 120;
-          if (x%2 == 0) {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[index]); 
-          } else {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColorsQuarter[indexRainbow]); 
-          }
-        break;
-            case 6:
-          index = 150;
-          if (x%2 == 0) {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]); 
-          } else {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColors[indexRainbow]); 
-          }
-        break;
-            case 5:
-          index = 178;
-          if (x%2 == 0) {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[index]); 
-          } else {
-            leds.setPixel(x + y*ledsPerStrip, rainbowColorsHalf[indexRainbow]); 
-          }
-        
-        break;
-        }
-      }
+  digitalWrite(1, HIGH);
+  for (x=0; x < ledsPerStrip; x++) {
+    for (y=0; y < 8; y++) {
+      leds.setPixel(x + y*ledsPerStrip, rainbowColors[colorToSet]); 
     }
-    leds.show();
-    digitalWrite(1, LOW);
-    delayMicroseconds(wait);
   }
+  leds.show();
+  digitalWrite(1, LOW);
+  delayMicroseconds(wait);
 }
 
 
@@ -305,7 +277,7 @@ if (brightnessNumber < 5) {
     delayMicroseconds(wait);
   }
 } else {
-  solid();
+  solid(20);
 }
 }
 
