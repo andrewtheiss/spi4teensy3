@@ -59,11 +59,11 @@ int buttonInterAnimationId = 10; //button #3 for changing pattern bank
 
 //Animation 
 volatile int pattern = 0;
-int maxPatterns = 3;
+int maxPatterns = 2;
 
 // InterAnimationId
 volatile int interAnimationSelection = 0;
-int interAnimationIdSizePerPattern[] = {3, 3, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN maxPatterns
+int interAnimationIdSizePerPattern[] = {5, 3, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN maxPatterns
 
 //variables to keep track of the timing of recent interrupts
 volatile bool buttonPatternIsPressed = false;
@@ -154,9 +154,6 @@ void cyclePattern() {
     } else {
       pattern++;
     }
-
-    // Can behave other and resetting the sub animation...
-    interAnimationSelection = 0;
     
     buttonPatternIsPressed = true;
   } else {
@@ -176,7 +173,7 @@ void cycleInterAnimationPattern() {
   if ((digitalRead(buttonInterAnimationId) == LOW) && !buttonInterAnimationIsPressed && latestTimeWithinDelay) {
     
     buttonInterAnimationPressedTime = latestTime;
-    if ((interAnimationSelection + 1) >= interAnimationIdSizePerPattern[0]) {
+    if ((interAnimationSelection + 1) >= interAnimationIdSizePerPattern[pattern]) {
       interAnimationSelection = 0;
     } else {
       interAnimationSelection++;
@@ -190,22 +187,28 @@ void cycleInterAnimationPattern() {
 void loop() {
   switch(pattern) {
     case 0:
-     renderSolidAnimation();
+    renderRainbowAnimation();
       break;
     case 1:
-      rainbow(10, 2500);
-      break;
-    case 2:
-      solid(150);
+     renderSolidAnimation();
       break;
     default:
       solid(140);
       break;
   }
-
 }
 
+
 // Pattern #0
+void renderRainbowAnimation() {
+  switch (interAnimationSelection) {
+    default: 
+      rainbow(10, 2500);
+      break;
+  }
+}
+
+// Pattern #1
 void renderSolidAnimation() {
   switch (interAnimationSelection) {
     case 0:
@@ -219,24 +222,6 @@ void renderSolidAnimation() {
       break;
     default: 
       solid(110);
-      break;
-  }
-}
-
-// Pattern #1
-void renderRainbowAnimation() {
-  switch (interAnimationSelection) {
-    case 0:
-      rainbow(20, 1500);
-      break;
-    case 1:
-      rainbow(0, 25000);
-      break;
-    case 2:
-      rainbow(10, 2500);
-      break;
-    default: 
-      rainbow(10, 2500);
       break;
   }
 }
@@ -271,7 +256,6 @@ void solid(int colorToSet)
   }
   leds.show();
   digitalWrite(1, LOW);
-  delayMicroseconds(wait);
 }
 
 
@@ -288,7 +272,6 @@ void solid(int colorToSet)
 //
 void rainbow(int phaseShift, int cycleTime)
 {
-if (brightnessNumber < 5) {
   int color, x, y, wait;
   wait = cycleTime * 1000 / ledsPerStrip;
   for (color=0; color < 180; color++) {
@@ -297,7 +280,7 @@ if (brightnessNumber < 5) {
       for (y=0; y < 8; y++) {
         int index = (color + x + y*phaseShift/2) % 180;
 
-        switch( brightnessNumber) {
+        switch( interAnimationSelection) {
           case 0:
         leds.setPixel(x + y*ledsPerStrip, rainbowColors[index]);
             break;
@@ -321,10 +304,6 @@ if (brightnessNumber < 5) {
     }
     leds.show();
     digitalWrite(1, LOW);
-    delayMicroseconds(wait);
   }
-} else {
-  solid(20);
-}
 }
 
