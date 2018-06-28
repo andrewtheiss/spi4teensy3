@@ -63,13 +63,15 @@ int maxPatterns = 3;
 
 // InterAnimationId
 volatile int interAnimationSelection = 0;
-int interAnimationIdSizePerPattern[] = {2, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN MAXPATTERNS
+int interAnimationIdSizePerPattern[] = {3, 3, patternSolidColorCount};  // SHOULD NEVER BE MORE THAN maxPatterns
 
 //variables to keep track of the timing of recent interrupts
 volatile bool buttonPatternIsPressed = false;
 volatile unsigned long buttonPatternPressedTime = 0;
-long buttonPatternPressedTimeDelay = 150;
+long buttonPatternPressedTimeDelay = 180;
 volatile bool buttonInterAnimationIsPressed = false;
+volatile unsigned long buttonInterAnimationPressedTime = 0;
+long buttonInterAnimationPressedTimeDelay = 180;
 volatile bool buttonBrightnessIsPressed = false;
 
 #include <OctoWS2811.h>
@@ -118,8 +120,8 @@ void setup() {
   leds.begin();
 
   attachInterrupt(buttonPattern,  cyclePattern, FALLING);
+  attachInterrupt(buttonInterAnimationId, cycleInterAnimationPattern, FALLING);
   //attachInterrupt(buttonBrightness, brightnessButtonPressed, RISING);
-  //attachInterrupt(buttonInterAnimationId, cycleSubPattern, FALLING);
 }
 /*
 // Update Brightness
@@ -145,54 +147,99 @@ void cyclePattern() {
   
   if ((digitalRead(buttonPattern)== LOW) && !buttonPatternIsPressed && latestTimeWithinDelay) {
 
+    // Change pattern
     buttonPatternPressedTime = latestTime;
     if ((pattern + 1) >= maxPatterns) {
       pattern = 0;
     } else {
       pattern++;
     }
+
+    // Can behave other and resetting the sub animation...
+    interAnimationSelection = 0;
     
     buttonPatternIsPressed = true;
   } else {
     buttonPatternIsPressed = false;
   }
 }
-/*
-void cycleSubPattern() {
-  if ((digitalRead(buttonInterAnimationId) == LOW) && !buttonInterAnimationIsPressed) {
+
+void cycleInterAnimationPattern() {
+  
+  // Check for time delay between button presses
+  unsigned long latestTime = millis();
+  bool latestTimeWithinDelay = false;
+  if ((latestTime - buttonInterAnimationPressedTimeDelay) > buttonInterAnimationPressedTime) {
+    latestTimeWithinDelay = true;
+  }
+
+  if ((digitalRead(buttonInterAnimationId) == LOW) && !buttonInterAnimationIsPressed && latestTimeWithinDelay) {
+    
+    buttonInterAnimationPressedTime = latestTime;
     if ((interAnimationSelection + 1) >= interAnimationIdSizePerPattern[0]) {
       interAnimationSelection = 0;
     } else {
       interAnimationSelection++;
     }
-     buttonInterAnimationIsPressed = true;
-     delay(300);
+    buttonInterAnimationIsPressed = true;
   } else {
     buttonInterAnimationIsPressed = false;
   }
 }
-*/
+
 void loop() {
   switch(pattern) {
     case 0:
-      solid(30);
+     renderSolidAnimation();
       break;
     case 1:
-      solid(70);
+      rainbow(10, 2500);
       break;
     case 2:
       solid(150);
       break;
     default:
       solid(140);
-      /*
-      rainbow(10, 2500);
-      */
       break;
   }
 
 }
 
+// Pattern #0
+void renderSolidAnimation() {
+  switch (interAnimationSelection) {
+    case 0:
+      solid(50);
+      break;
+    case 1:
+      solid(175);
+      break;
+    case 2:
+      solid(150);
+      break;
+    default: 
+      solid(110);
+      break;
+  }
+}
+
+// Pattern #1
+void renderRainbowAnimation() {
+  switch (interAnimationSelection) {
+    case 0:
+      rainbow(20, 1500);
+      break;
+    case 1:
+      rainbow(0, 25000);
+      break;
+    case 2:
+      rainbow(10, 2500);
+      break;
+    default: 
+      rainbow(10, 2500);
+      break;
+  }
+}
 
 //brightness button interrupt
 void brightnessControl() {
