@@ -273,11 +273,11 @@ void solid(int colorToSet)
 void rainbow(int phaseShift, int cycleTime)
 {
   int color, x, y, wait;
+  y = 0;
   wait = cycleTime * 1000 / ledsPerStrip;
   for (color=0; color < 180; color++) {
     digitalWrite(1, HIGH);
     for (x=0; x < ledsPerStrip; x++) {
-      for (y=0; y < 8; y++) {
         int index = (color + x + y*phaseShift/2) % 180;
 
         switch( interAnimationSelection) {
@@ -300,7 +300,6 @@ void rainbow(int phaseShift, int cycleTime)
         leds.setPixel(x + y*ledsPerStrip, 0);
         break;
         }
-      }
     }
     leds.show();
     digitalWrite(1, LOW);
