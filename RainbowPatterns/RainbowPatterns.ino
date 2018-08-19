@@ -270,7 +270,7 @@ void solid(int colorToSet)
 // the entire 360 degrees of the color wheel:
 // Red -> Orange -> Yellow -> Green -> Blue -> Violet -> Red
 //
-void rainbow(int phaseShift, int cycleTime)
+void rainbow(bool , int cycleTime)
 {
   int color, x, y, wait;
   y = 0;
