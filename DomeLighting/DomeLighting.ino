@@ -55,6 +55,11 @@ OctoWS2811 leds(ledsPerStrip, displayMemory, drawingMemory, config);
 
 int rainbowColors[360];
 
+// Display the first and slowly generate the next
+int singleColorA[50];
+int singleColorSwitchCycleCount = 1000;
+int singleColorHue = 300;
+int singleColorTargetHue = 350;
 
 void setup() {
   pinMode(1, OUTPUT);
@@ -64,7 +69,14 @@ void setup() {
     int saturation = 100;
     int lightness = 50;
     // pre-compute the 180 rainbow colors
-    rainbowColors[i] = makeColor(hue, saturation, lightness);
+    rainbowColors[i] = makeColor(hue, saturation, lightness);    
+  }
+
+  for (int i = 0; i < 50; i++) {
+    int saturation = 100;
+    int lightness = 50;
+    singleColorA[i] = makeColor(singleColorHue, saturation, i);
+    
   }
   digitalWrite(1, LOW);
   leds.begin();
@@ -73,7 +85,8 @@ void setup() {
 
 void loop() {
   //rainbow(10, 2500);
-  rainbowMirrored(6600);
+  //rainbowMirrored(6600);
+  fadeSingleColorMirrored(12500);
 }
 
 
@@ -128,8 +141,36 @@ void rainbowMirrored(int cycleTime) {
   } 
 }
 
+
 // Single color fade from 100 -> 0 lightness
 void fadeSingleColorMirrored(int cycleTime) {
+    
+  int color, x, y, wait;
 
+  singleColorHue++;
+  for (int i = 0; i < 50; i++) {
+    singleColorA[i] = makeColor(singleColorHue, 100, i);
+  }
+
+  
+  wait = cycleTime * 1000 / ledsPerStrip;
+  for (color=0; color < 50; color++) {
+    digitalWrite(1, HIGH);
+    for (x=0; x < ledsPerStripMirrored; x++) {
+      for (y=0; y < 8; y++) {
+        int index = (color + x) % 50;
+        leds.setPixel(x + y*ledsPerStrip, singleColorA[index]);
+        leds.setPixel((ledsPerStripMirrored * 2) - x + y*ledsPerStrip, singleColorA[index]);
+      }
+      
+      for (y=0; y < 8; y++) {
+        int index = (color + x) % 50;
+        leds.setPixel(ledsPerStripMirrored + y*ledsPerStrip, singleColorA[index]);
+      }
+    }
+    leds.show();
+    digitalWrite(1, LOW);
+    delayMicroseconds(wait);
+  } 
 }
 
